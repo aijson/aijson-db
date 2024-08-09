@@ -14,13 +14,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from aijson.utils.action_utils import get_actions_dict
-from aijson_ml.actions.llm import Outputs as PromptOutputs, Prompt
-from aijson_ml.actions.transformer import (
-    BaseTransformerInputs as TransformerInputs,
-    Outputs as TransformerOutputs,
-    Retrieve,
-    Rerank,
-)
 from aijson.log_config import configure_logging, get_logger
 from aijson.models.blob import Blob
 from aijson.models.config.flow import build_hinted_action_config
@@ -337,43 +330,6 @@ def gracefully_cancel_tasks(event_loop):
     for task in tasks:
         task.cancel()
     event_loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-
-
-@pytest.fixture
-def mock_prompt_result():
-    # TODO define mocks per action instance, not globally
-    return "mock result prompt <summary> my summary </summary> <sql> select * from users </sql>"
-
-
-@pytest.fixture()
-def mock_prompt_action(mock_prompt_result):
-    # TODO mock the prompt for each example separately
-    outputs = PromptOutputs(
-        result=mock_prompt_result,
-        response=mock_prompt_result,
-        data={
-            "action_items": ["a", "b"],
-        },
-    )
-
-    async def outputs_iter(*args, **kwargs):
-        yield outputs
-
-    with patch.object(Prompt, "run", new=outputs_iter):
-        yield
-
-
-@pytest.fixture()
-def mock_transformer_action():
-    async def outputs_ret(self, inputs: TransformerInputs):
-        return TransformerOutputs(
-            result=inputs.documents,
-        )
-
-    with patch.object(Retrieve, "run", new=outputs_ret), patch.object(
-        Rerank, "run", new=outputs_ret
-    ):
-        yield
 
 
 @pytest.fixture
